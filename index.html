@@ -34,14 +34,14 @@
         #scroller-text {
             font-family: 'Noto Sans SC', 'Microsoft YaHei', sans-serif;
             font-weight: 900;
-            font-size: 120px;
+            font-size: 150px;
             white-space: nowrap;
             text-transform: uppercase;
-            letter-spacing: 0.05em;
+            letter-spacing: 0.03em;
             animation-timing-function: linear;
             animation-iteration-count: infinite;
-            padding: 20px 40px;
-            border-radius: 12px;
+            padding: 30px 50px;
+            border-radius: 8px;
         }
 
         @keyframes scroll-left {
@@ -466,6 +466,78 @@
                 font-size: 80px;
             }
         }
+
+        @media (orientation: landscape) and (max-height: 500px) {
+            #scroller-text {
+                font-size: min(18vw, 140px);
+                padding: 10px 30px;
+            }
+
+            #controls {
+                top: auto;
+                bottom: 10px;
+                right: 10px;
+                width: auto;
+                max-width: 400px;
+                padding: 10px 15px;
+            }
+
+            #controls h2 {
+                font-size: 12px;
+                margin-bottom: 8px;
+            }
+
+            .control-group {
+                margin-bottom: 8px;
+            }
+
+            .control-group label {
+                font-size: 9px;
+            }
+
+            .control-group input[type="text"],
+            .control-group textarea,
+            select {
+                padding: 6px 8px;
+                font-size: 11px;
+            }
+
+            .control-group textarea {
+                height: 35px;
+            }
+
+            .color-presets {
+                gap: 4px;
+            }
+
+            .color-preset {
+                width: 20px;
+                height: 20px;
+            }
+
+            .btn {
+                padding: 6px 10px;
+                font-size: 9px;
+                margin-bottom: 4px;
+            }
+
+            .slider-container input[type="range"]::-webkit-slider-thumb {
+                width: 16px;
+                height: 16px;
+            }
+
+            .slider-value {
+                font-size: 10px;
+                min-width: 35px;
+            }
+        }
+
+        @media (orientation: portrait) and (max-width: 500px) {
+            #scroller-text {
+                font-size: min(16vw, 80px);
+                padding: 15px 20px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -553,8 +625,8 @@
         <div class="control-group">
             <label>字体大小</label>
             <div class="slider-container">
-                <input type="range" id="font-size" min="20" max="180" value="60">
-                <span class="slider-value" id="font-size-value">60px</span>
+                <input type="range" id="font-size" min="40" max="250" value="100">
+                <span class="slider-value" id="font-size-value">100px</span>
             </div>
         </div>
 
@@ -643,7 +715,10 @@
             scrollerText.style.fontFamily = fontFamily.value;
 
             let initialFontSize = parseInt(fontSize.value);
-            if (window.innerWidth <= 480) {
+
+            if (window.innerHeight <= 500 && window.innerWidth > window.innerHeight) {
+                initialFontSize = Math.min(initialFontSize, Math.floor(window.innerHeight * 0.6));
+            } else if (window.innerWidth <= 480) {
                 initialFontSize = Math.min(initialFontSize, 40);
             } else if (window.innerWidth <= 768) {
                 initialFontSize = Math.min(initialFontSize, 50);
@@ -702,14 +777,16 @@
 
         fontSize.addEventListener('input', (e) => {
             fontSizeValue.textContent = e.target.value + 'px';
-            scrollerText.style.fontSize = e.target.value + 'px';
 
-            const baseFontSize = parseInt(e.target.value);
-            if (window.innerWidth <= 480) {
-                scrollerText.style.fontSize = Math.min(baseFontSize, 40) + 'px';
+            let baseFontSize = parseInt(e.target.value);
+            if (window.innerHeight <= 500 && window.innerWidth > window.innerHeight) {
+                baseFontSize = Math.min(baseFontSize, Math.floor(window.innerHeight * 0.6));
+            } else if (window.innerWidth <= 480) {
+                baseFontSize = Math.min(baseFontSize, 40);
             } else if (window.innerWidth <= 768) {
-                scrollerText.style.fontSize = Math.min(baseFontSize, 50) + 'px';
+                baseFontSize = Math.min(baseFontSize, 50);
             }
+            scrollerText.style.fontSize = baseFontSize + 'px';
         });
 
         fontFamily.addEventListener('change', (e) => {
