@@ -1,0 +1,810 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>演唱会全屏文字滚动</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@700;900&family=ZCOOL+Kuai+Le&display=swap');
+
+        body {
+            font-family: 'Noto Sans SC', 'Microsoft YaHei', sans-serif;
+            overflow: hidden;
+            background: #000;
+        }
+
+        #scroller-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        #scroller-text {
+            font-family: 'Noto Sans SC', 'Microsoft YaHei', sans-serif;
+            font-weight: 900;
+            font-size: 120px;
+            white-space: nowrap;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            animation-timing-function: linear;
+            animation-iteration-count: infinite;
+            padding: 20px 40px;
+            border-radius: 12px;
+        }
+
+        @keyframes scroll-left {
+            from { transform: translateX(100vw); }
+            to { transform: translateX(-100%); }
+        }
+
+        @keyframes scroll-right {
+            from { transform: translateX(-100%); }
+            to { transform: translateX(100vw); }
+        }
+
+        @keyframes scroll-up {
+            from { transform: translateY(100vh); }
+            to { transform: translateY(-100%); }
+        }
+
+        @keyframes scroll-down {
+            from { transform: translateY(-100%); }
+            to { transform: translateY(100vh); }
+        }
+
+        #controls {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(0,0,0,0.9);
+            padding: 25px;
+            border-radius: 16px;
+            z-index: 1000;
+            width: 320px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.15);
+            box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+        }
+
+        #controls h2 {
+            color: #fff;
+            margin-bottom: 20px;
+            font-size: 18px;
+            font-weight: 700;
+            text-align: center;
+            letter-spacing: 2px;
+        }
+
+        .control-group {
+            margin-bottom: 20px;
+        }
+
+        .control-group label {
+            display: block;
+            color: #ccc;
+            margin-bottom: 8px;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .control-group input[type="text"],
+        .control-group textarea {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 8px;
+            background: rgba(255,255,255,0.08);
+            color: #fff;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        .control-group input[type="text"]:focus,
+        .control-group textarea:focus {
+            outline: none;
+            border-color: #00d4ff;
+            box-shadow: 0 0 10px rgba(0,212,255,0.3);
+        }
+
+        .control-group textarea {
+            height: 80px;
+            resize: vertical;
+        }
+
+        .color-row {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .color-row input[type="color"] {
+            width: 50px;
+            height: 40px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            background: transparent;
+        }
+
+        .color-row input[type="text"] {
+            flex: 1;
+        }
+
+        .color-presets {
+            display: flex;
+            gap: 8px;
+            margin-top: 10px;
+            flex-wrap: wrap;
+        }
+
+        .color-preset {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: all 0.3s ease;
+        }
+
+        .color-preset:hover {
+            transform: scale(1.2);
+            border-color: #fff;
+        }
+
+        select {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 8px;
+            background: rgba(255,255,255,0.08);
+            color: #fff;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        select:hover {
+            border-color: #00d4ff;
+        }
+
+        select option {
+            background: #333;
+            color: #fff;
+        }
+
+        .slider-container {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .slider-container input[type="range"] {
+            flex: 1;
+            height: 6px;
+            border-radius: 3px;
+            background: rgba(255,255,255,0.2);
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        .slider-container input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #00d4ff, #00ff88);
+            cursor: pointer;
+            box-shadow: 0 0 10px rgba(0,212,255,0.5);
+        }
+
+        .slider-value {
+            min-width: 55px;
+            text-align: right;
+            color: #00d4ff;
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 14px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 10px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #00d4ff, #00ff88);
+            color: #000;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(0,212,255,0.4);
+        }
+
+        .btn-primary:active,
+        .btn-secondary:active {
+            transform: scale(0.97);
+        }
+
+        .btn-secondary {
+            background: rgba(255,255,255,0.1);
+            color: #fff;
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255,255,255,0.2);
+        }
+
+        #toggle-controls {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1001;
+            padding: 12px 20px;
+            background: rgba(0,0,0,0.8);
+            color: #fff;
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: all 0.3s ease;
+        }
+
+        #toggle-controls:hover {
+            background: rgba(0,212,255,0.3);
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .font-preview {
+            font-size: 24px;
+            text-align: center;
+            padding: 15px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 8px;
+            margin-bottom: 10px;
+            color: #fff;
+        }
+
+        @media (max-width: 768px) {
+            #controls {
+                width: calc(100% - 30px);
+                right: 15px;
+                left: 15px;
+                top: auto;
+                bottom: 20px;
+                padding: 15px;
+                max-height: 45vh;
+                overflow-y: auto;
+            }
+
+            #toggle-controls {
+                top: 10px;
+                right: 10px;
+                padding: 10px 16px;
+                font-size: 11px;
+            }
+
+            #controls h2 {
+                font-size: 16px;
+                margin-bottom: 12px;
+            }
+
+            .control-group {
+                margin-bottom: 12px;
+            }
+
+            .control-group label {
+                font-size: 11px;
+                margin-bottom: 6px;
+            }
+
+            .control-group input[type="text"],
+            .control-group textarea,
+            select {
+                padding: 10px;
+                font-size: 14px;
+            }
+
+            .control-group textarea {
+                height: 50px;
+            }
+
+            .color-presets {
+                gap: 6px;
+            }
+
+            .color-preset {
+                width: 28px;
+                height: 28px;
+            }
+
+            .slider-container input[type="range"]::-webkit-slider-thumb {
+                width: 24px;
+                height: 24px;
+            }
+
+            .slider-value {
+                min-width: 45px;
+                font-size: 12px;
+            }
+
+            .btn {
+                padding: 12px;
+                font-size: 12px;
+            }
+
+            .font-preview {
+                font-size: 16px;
+                padding: 10px;
+            }
+
+            #scroller-text {
+                font-size: 42px;
+                padding: 12px 20px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            #controls {
+                width: calc(100% - 16px);
+                right: 8px;
+                left: 8px;
+                bottom: 10px;
+                padding: 10px;
+                border-radius: 12px;
+            }
+
+            #toggle-controls {
+                top: 8px;
+                right: 8px;
+                padding: 8px 12px;
+                font-size: 10px;
+            }
+
+            #controls h2 {
+                font-size: 13px;
+                margin-bottom: 8px;
+            }
+
+            .control-group {
+                margin-bottom: 8px;
+            }
+
+            .control-group label {
+                font-size: 10px;
+            }
+
+            .control-group input[type="text"],
+            .control-group textarea,
+            select {
+                padding: 8px;
+                font-size: 13px;
+            }
+
+            .control-group textarea {
+                height: 40px;
+            }
+
+            .color-preset {
+                width: 24px;
+                height: 24px;
+            }
+
+            .btn {
+                padding: 10px;
+                font-size: 10px;
+                margin-bottom: 6px;
+            }
+
+            .font-preview {
+                font-size: 14px;
+                padding: 8px;
+            }
+
+            #scroller-text {
+                font-size: 32px;
+                padding: 8px 12px;
+            }
+
+            .slider-container {
+                gap: 8px;
+            }
+
+            .slider-container input[type="range"] {
+                height: 4px;
+            }
+
+            .slider-container input[type="range"]::-webkit-slider-thumb {
+                width: 20px;
+                height: 20px;
+            }
+
+            .slider-value {
+                min-width: 38px;
+                font-size: 10px;
+            }
+        }
+
+        @media (min-width: 769px) and (max-width: 1024px) {
+            #controls {
+                width: 280px;
+                padding: 20px;
+            }
+
+            #controls h2 {
+                font-size: 16px;
+            }
+
+            #scroller-text {
+                font-size: 80px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="scroller-container">
+        <div id="scroller-text">演唱会文字滚动</div>
+    </div>
+
+    <button id="toggle-controls">显示设置</button>
+
+    <div id="controls">
+        <h2>🎤 演唱会文字设置</h2>
+
+        <div class="control-group">
+            <label>滚动文字（每行一条）</label>
+            <textarea id="text-input" placeholder="输入要显示的文字，每行一条">我爱这场演唱会！
+全场一起嗨！
+跟着节奏摇摆！
+这是最棒的一晚！
+让我们一起尖叫！
+</textarea>
+        </div>
+
+        <div class="control-group">
+            <label>文字颜色</label>
+            <div class="color-row">
+                <input type="color" id="text-color" value="#FFFFFF">
+                <input type="text" id="text-color-hex" value="#FFFFFF" placeholder="#FFFFFF">
+            </div>
+            <div class="color-presets">
+                <div class="color-preset" style="background: #FFFFFF" data-color="#FFFFFF"></div>
+                <div class="color-preset" style="background: #FFD700" data-color="#FFD700"></div>
+                <div class="color-preset" style="background: #00FFFF" data-color="#00FFFF"></div>
+                <div class="color-preset" style="background: #FF00FF" data-color="#FF00FF"></div>
+                <div class="color-preset" style="background: #00FF00" data-color="#00FF00"></div>
+                <div class="color-preset" style="background: #FF6B6B" data-color="#FF6B6B"></div>
+                <div class="color-preset" style="background: #FF8C00" data-color="#FF8C00"></div>
+                <div class="color-preset" style="background: #9370DB" data-color="#9370DB"></div>
+            </div>
+        </div>
+
+        <div class="control-group">
+            <label>背景颜色</label>
+            <div class="color-row">
+                <input type="color" id="bg-color" value="#000000">
+                <input type="text" id="bg-color-hex" value="#000000" placeholder="#000000">
+            </div>
+            <div class="color-presets">
+                <div class="color-preset" style="background: #000000" data-color="#000000"></div>
+                <div class="color-preset" style="background: #1a1a2e" data-color="#1a1a2e"></div>
+                <div class="color-preset" style="background: #16213e" data-color="#16213e"></div>
+                <div class="color-preset" style="background: #0f3460" data-color="#0f3460"></div>
+                <div class="color-preset" style="background: #1a1a1a" data-color="#1a1a1a"></div>
+                <div class="color-preset" style="background: #2d132c" data-color="#2d132c"></div>
+                <div class="color-preset" style="background: #1b262c" data-color="#1b262c"></div>
+                <div class="color-preset" style="background: #0d1b2a" data-color="#0d1b2a"></div>
+            </div>
+        </div>
+
+        <div class="control-group">
+            <label>背景透明度</label>
+            <div class="slider-container">
+                <input type="range" id="bg-opacity" min="0" max="100" value="0">
+                <span class="slider-value" id="bg-opacity-value">0%</span>
+            </div>
+        </div>
+
+        <div class="control-group">
+            <label>滚动方向</label>
+            <select id="direction">
+                <option value="left">从右向左 ←</option>
+                <option value="right">从左向右 →</option>
+                <option value="up">从下向上 ↑</option>
+                <option value="down">从上向下 ↓</option>
+            </select>
+        </div>
+
+        <div class="control-group">
+            <label>滚动速度</label>
+            <div class="slider-container">
+                <input type="range" id="speed" min="5" max="60" value="20">
+                <span class="slider-value" id="speed-value">20秒</span>
+            </div>
+        </div>
+
+        <div class="control-group">
+            <label>字体大小</label>
+            <div class="slider-container">
+                <input type="range" id="font-size" min="20" max="180" value="60">
+                <span class="slider-value" id="font-size-value">60px</span>
+            </div>
+        </div>
+
+        <div class="control-group">
+            <label>字体样式</label>
+            <select id="font-family">
+                <option value="'Noto Sans SC', 'Microsoft YaHei', sans-serif">时尚黑体</option>
+                <option value="'Microsoft YaHei', sans-serif">微软雅黑</option>
+                <option value="'PingFang SC', 'Microsoft YaHei', sans-serif">苹方</option>
+                <option value="'Arial Black', 'Microsoft YaHei', sans-serif">粗体无衬线</option>
+                <option value="'Impact', 'Microsoft YaHei', sans-serif">力度粗体</option>
+                <option value="'ZCOOL Kuai Le', 'Microsoft YaHei', cursive">潮流手写</option>
+            </select>
+            <div class="font-preview" id="font-preview">
+                演唱会专用字体
+            </div>
+        </div>
+
+        <button class="btn btn-primary" id="fullscreen-btn">全屏显示</button>
+        <button class="btn btn-secondary" id="toggle-display">暂停 / 继续</button>
+    </div>
+
+    <script>
+        const scrollerText = document.getElementById('scroller-text');
+        const textInput = document.getElementById('text-input');
+        const textColor = document.getElementById('text-color');
+        const textColorHex = document.getElementById('text-color-hex');
+        const bgColor = document.getElementById('bg-color');
+        const bgColorHex = document.getElementById('bg-color-hex');
+        const bgOpacity = document.getElementById('bg-opacity');
+        const bgOpacityValue = document.getElementById('bg-opacity-value');
+        const direction = document.getElementById('direction');
+        const speed = document.getElementById('speed');
+        const speedValue = document.getElementById('speed-value');
+        const fontSize = document.getElementById('font-size');
+        const fontSizeValue = document.getElementById('font-size-value');
+        const fontFamily = document.getElementById('font-family');
+        const fontPreview = document.getElementById('font-preview');
+        const fullscreenBtn = document.getElementById('fullscreen-btn');
+        const toggleControls = document.getElementById('toggle-controls');
+        const controls = document.getElementById('controls');
+        const toggleDisplay = document.getElementById('toggle-display');
+
+        let isPaused = false;
+
+        function updateAnimation() {
+            const dir = direction.value;
+            const duration = speed.value;
+
+            scrollerText.style.animation = 'none';
+
+            void scrollerText.offsetWidth;
+
+            switch(dir) {
+                case 'left':
+                    scrollerText.style.animation = `scroll-left ${duration}s linear infinite`;
+                    scrollerText.style.width = 'max-content';
+                    break;
+                case 'right':
+                    scrollerText.style.animation = `scroll-right ${duration}s linear infinite`;
+                    scrollerText.style.width = 'max-content';
+                    break;
+                case 'up':
+                    scrollerText.style.animation = `scroll-up ${duration}s linear infinite`;
+                    scrollerText.style.width = '100vw';
+                    scrollerText.style.textAlign = 'center';
+                    break;
+                case 'down':
+                    scrollerText.style.animation = `scroll-down ${duration}s linear infinite`;
+                    scrollerText.style.width = '100vw';
+                    scrollerText.style.textAlign = 'center';
+                    break;
+            }
+
+            if (isPaused) {
+                scrollerText.style.animationPlayState = 'paused';
+            }
+        }
+
+        function updateDisplay() {
+            const texts = textInput.value.split('\n').filter(t => t.trim());
+            scrollerText.innerHTML = texts.join('<br>');
+
+            scrollerText.style.color = textColor.value;
+            scrollerText.style.backgroundColor = bgColor.value + Math.round(bgOpacity.value * 2.55).toString(16).padStart(2, '0');
+            scrollerText.style.fontFamily = fontFamily.value;
+
+            let initialFontSize = parseInt(fontSize.value);
+            if (window.innerWidth <= 480) {
+                initialFontSize = Math.min(initialFontSize, 40);
+            } else if (window.innerWidth <= 768) {
+                initialFontSize = Math.min(initialFontSize, 50);
+            }
+            scrollerText.style.fontSize = initialFontSize + 'px';
+
+            updateAnimation();
+        }
+
+        function toggleFullscreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen();
+                fullscreenBtn.textContent = '退出全屏';
+            } else {
+                document.exitFullscreen();
+                fullscreenBtn.textContent = '全屏显示';
+            }
+        }
+
+        textColor.addEventListener('input', (e) => {
+            textColorHex.value = e.target.value;
+            scrollerText.style.color = e.target.value;
+        });
+
+        textColorHex.addEventListener('input', (e) => {
+            if (/^#[0-9A-Fa-f]{6}$/.test(e.target.value)) {
+                textColor.value = e.target.value;
+                scrollerText.style.color = e.target.value;
+            }
+        });
+
+        bgColor.addEventListener('input', (e) => {
+            bgColorHex.value = e.target.value;
+            const opacityHex = Math.round(bgOpacity.value * 2.55).toString(16).padStart(2, '0');
+            scrollerText.style.backgroundColor = e.target.value + opacityHex;
+        });
+
+        bgColorHex.addEventListener('input', (e) => {
+            if (/^#[0-9A-Fa-f]{6}$/.test(e.target.value)) {
+                bgColor.value = e.target.value;
+                const opacityHex = Math.round(bgOpacity.value * 2.55).toString(16).padStart(2, '0');
+                scrollerText.style.backgroundColor = e.target.value + opacityHex;
+            }
+        });
+
+        bgOpacity.addEventListener('input', (e) => {
+            bgOpacityValue.textContent = e.target.value + '%';
+            const opacityHex = Math.round(e.target.value * 2.55).toString(16).padStart(2, '0');
+            scrollerText.style.backgroundColor = bgColor.value + opacityHex;
+        });
+
+        speed.addEventListener('input', (e) => {
+            speedValue.textContent = e.target.value + '秒';
+            updateAnimation();
+        });
+
+        fontSize.addEventListener('input', (e) => {
+            fontSizeValue.textContent = e.target.value + 'px';
+            scrollerText.style.fontSize = e.target.value + 'px';
+
+            const baseFontSize = parseInt(e.target.value);
+            if (window.innerWidth <= 480) {
+                scrollerText.style.fontSize = Math.min(baseFontSize, 40) + 'px';
+            } else if (window.innerWidth <= 768) {
+                scrollerText.style.fontSize = Math.min(baseFontSize, 50) + 'px';
+            }
+        });
+
+        fontFamily.addEventListener('change', (e) => {
+            fontPreview.style.fontFamily = e.target.value;
+            scrollerText.style.fontFamily = e.target.value;
+        });
+
+        document.querySelectorAll('.color-preset').forEach(preset => {
+            preset.addEventListener('click', (e) => {
+                const color = e.target.dataset.color;
+                const input = e.target.closest('.control-group').querySelector('input[type="color"]');
+                const hexInput = e.target.closest('.control-group').querySelector('input[type="text"]');
+                input.value = color;
+                hexInput.value = color;
+                input.dispatchEvent(new Event('input'));
+            });
+        });
+
+        fullscreenBtn.addEventListener('click', toggleFullscreen);
+
+        toggleControls.addEventListener('click', () => {
+            controls.classList.toggle('hidden');
+            toggleControls.textContent = controls.classList.contains('hidden') ? '显示设置' : '隐藏设置';
+        });
+
+        toggleDisplay.addEventListener('click', () => {
+            isPaused = !isPaused;
+            if (isPaused) {
+                scrollerText.style.animationPlayState = 'paused';
+                toggleDisplay.textContent = '继续播放';
+            } else {
+                scrollerText.style.animationPlayState = 'running';
+                toggleDisplay.textContent = '暂停 / 继续';
+            }
+        });
+
+        textInput.addEventListener('input', () => {
+            const texts = textInput.value.split('\n').filter(t => t.trim());
+            scrollerText.innerHTML = texts.join('<br>');
+        });
+
+        direction.addEventListener('change', updateAnimation);
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'f' || e.key === 'F') {
+                toggleFullscreen();
+            } else if (e.key === ' ') {
+                e.preventDefault();
+                toggleDisplay.click();
+            } else if (e.key === 'Escape') {
+                if (document.fullscreenElement) {
+                    document.exitFullscreen();
+                    fullscreenBtn.textContent = '全屏显示';
+                }
+            }
+        });
+
+        document.addEventListener('fullscreenchange', () => {
+            if (!document.fullscreenElement) {
+                fullscreenBtn.textContent = '全屏显示';
+            }
+        });
+
+        window.addEventListener('resize', () => {
+            let currentFontSize = parseInt(fontSize.value);
+            if (window.innerWidth <= 480) {
+                currentFontSize = Math.min(currentFontSize, 40);
+            } else if (window.innerWidth <= 768) {
+                currentFontSize = Math.min(currentFontSize, 50);
+            }
+            scrollerText.style.fontSize = currentFontSize + 'px';
+        });
+
+        window.addEventListener('orientationchange', () => {
+            setTimeout(() => {
+                let currentFontSize = parseInt(fontSize.value);
+                if (window.innerWidth <= 480) {
+                    currentFontSize = Math.min(currentFontSize, 40);
+                } else if (window.innerWidth <= 768) {
+                    currentFontSize = Math.min(currentFontSize, 50);
+                }
+                scrollerText.style.fontSize = currentFontSize + 'px';
+            }, 100);
+        });
+
+        document.querySelectorAll('.color-preset, .btn').forEach(el => {
+            el.addEventListener('touchstart', function(e) {
+                this.style.transform = 'scale(0.95)';
+            });
+            el.addEventListener('touchend', function(e) {
+                this.style.transform = '';
+            });
+        });
+
+        updateDisplay();
+    </script>
+</body>
+</html>
